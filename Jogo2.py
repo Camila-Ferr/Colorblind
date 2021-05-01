@@ -54,7 +54,7 @@ for x in range(TILE_TYPES):
 
 # ataque
 bullet_img = pygame.image.load('Sprites/Elementos/ataque/bola.png').convert_alpha()
-bullet_img2 = pygame.image.load('Sprites/Elementos/ataque/projetil.png').convert_alpha()
+#bullet_img2 = pygame.image.load('Sprites/Elementos/ataque/projetil.png').convert_alpha()
 
 # bomba
 bomba_img = pygame.image.load('Sprites/Elementos/ataque/bola.png').convert_alpha()
@@ -504,7 +504,7 @@ class Bullet_mal(pygame.sprite.Sprite):
     def __init__(self, x, y, direction):
         pygame.sprite.Sprite.__init__(self)
         self.velocidade = 10
-        self.image = bullet_img2
+        #self.image = bullet_img2
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.direction = direction
