@@ -1,7 +1,9 @@
 import pygame
+from pygame import mixer
 import random
 import button
 import os
+
 pygame.init()
 
 clock=pygame.time.Clock()
@@ -43,8 +45,8 @@ painel_image=pygame.image.load("Sprites/Cenаrio/painel.png").convert_alpha()
 potion_img=pygame.image.load("Sprites/Elementos/moeda.png").convert_alpha()
 
 #Imagens de vitória e derrota
-victory_img=pygame.image.load("Sprites/Menu/plano_de_fundo.png").convert_alpha()
-defeat_img=pygame.image.load("Sprites/Menu/logo.png").convert_alpha()
+victory_img=pygame.image.load("Sprites/Menu/win.png").convert_alpha()
+defeat_img=pygame.image.load("Sprites/Menu/lose.png").convert_alpha()
 
 #desenhar texto
 def draw_text(text, font,text_color,x,y):
@@ -256,126 +258,126 @@ Heroi_health_bar=HealthBar(100, SCREEN_HEIGHT-bottom_panel+40, Heroi.hp,Heroi.ma
 Dragao_health_bar=HealthBar(550, SCREEN_HEIGHT-bottom_panel+40, Dragao.hp,Dragao.max_hp)
 
 
+def boss():
+    run = True
+    global clicked, game_over, current_fighter, action_cooldown, cont
+    global effect
+    while run:
+        clock.tick(fps)
 
-run = True
+        draw()
+        painel()
+        Heroi_health_bar.draw(Heroi.hp)
+        Dragao_health_bar.draw(Dragao.hp)
+        Dragao.update()
+        Dragao.draw()
+        Heroi.update()
+        Heroi.draw()
 
-while run:
-    clock.tick(fps)
+        #desenha o texto de dano
+        damage_textgroup.update()
+        damage_textgroup.draw(screen)
 
-    draw()
-    painel()
-    Heroi_health_bar.draw(Heroi.hp)
-    Dragao_health_bar.draw(Dragao.hp)
-    Dragao.update()
-    Dragao.draw()
-    Heroi.update()
-    Heroi.draw()
+        #controlar ações do player
+        #resetar variáveis de ação
+        attack = False
+        potion = False
+        target = None
 
-    #desenha o texto de dano
-    damage_textgroup.update()
-    damage_textgroup.draw(screen)
+        if clicked == True and Dragao.alive == True:
+            attack = True
+            target = Dragao
+            clicked = False
 
-    #controlar ações do player
-    #resetar variáveis de ação
-    attack = False
-    potion = False
-    target = None
+        if effect == True:
+            potion = True
+        #mostrar o número de poções resultantes
+        draw_text("Poções restantes: " +str(Heroi.potions),font,red,100,SCREEN_HEIGHT-bottom_panel+70)
 
-    if clicked == True and Dragao.alive == True:
-        attack = True
-        target = Dragao
-        clicked = False
+        if game_over == 0:
+            #ações do player:
+            if Heroi.alive == True:
+                if current_fighter == 1:
+                    action_cooldown += 1
+                    if action_cooldown >= action_wait_time:
+                        #olhar para ação do player
+                        #ataque
+                        if attack == True and target != None:
+                            Heroi.attack(Dragao)
+                            current_fighter += 1
+                            action_cooldown = 0
 
-    if effect == True:
-        potion = True
-    #mostrar o número de poções resultantes
-    draw_text("Poções restantes: " +str(Heroi.potions),font,red,100,SCREEN_HEIGHT-bottom_panel+70)
+                        #Poção
+                        if potion == True:
+                            if Heroi.potions > 0:
+                                #checar se a poção vai dar ao player mais que a vida máxima
+                                if Heroi.max_hp - Heroi.hp > potion_effect:
+                                    heal_amount = potion_effect
+                                else:
+                                    heal_amount = Heroi.max_hp - Heroi.hp
+                                Heroi.hp += heal_amount
+                                Heroi.potions -= 1
+                                damage_text = DamageText(Heroi.rect.centerx, Heroi.rect.centery, str(heal_amount), green)
+                                damage_textgroup.add(damage_text)
+                                current_fighter += 1
+                                action_cooldown = 0
+                                effect = False
+            else:
+                game_over = -1
 
-    if game_over == 0:
-        #ações do player:
-        if Heroi.alive == True:
-            if current_fighter == 1:
-                action_cooldown += 1
-                if action_cooldown >= action_wait_time:
-                    #olhar para ação do player
-                    #ataque
-                    if attack == True and target != None:
-                        Heroi.attack(Dragao)
-                        current_fighter += 1
-                        action_cooldown = 0
-
-                    #Poção
-                    if potion == True:
-                        if Heroi.potions > 0:
-                            #checar se a poção vai dar ao player mais que a vida máxima
-                            if Heroi.max_hp - Heroi.hp > potion_effect:
+            #ações do Boss:
+            if current_fighter == 2:
+                if Dragao.alive == True:
+                    action_cooldown += 1
+                    if action_cooldown >= action_wait_time:
+                        #checar se o Dragão precisa se curar primeiro
+                        if (Dragao.hp/Dragao.max_hp) < 0.5 and Dragao.potions>0:
+                            if Dragao.max_hp - Dragao.hp > potion_effect:
                                 heal_amount = potion_effect
                             else:
-                                heal_amount = Heroi.max_hp - Heroi.hp
-                            Heroi.hp += heal_amount
-                            Heroi.potions -= 1
-                            damage_text = DamageText(Heroi.rect.centerx, Heroi.rect.centery, str(heal_amount), green)
+                                heal_amount = Dragao.max_hp - Dragao.hp
+                            Dragao.hp += heal_amount
+                            Dragao.potions -= 1
+                            damage_text = DamageText(Dragao.rect.centerx, Dragao.rect.centery, str(heal_amount), green)
                             damage_textgroup.add(damage_text)
                             current_fighter += 1
                             action_cooldown = 0
-                            effect = False
-        else:
-            game_over = -1
-
-        #ações do Boss:
-        if current_fighter == 2:
-            if Dragao.alive == True:
-                action_cooldown += 1
-                if action_cooldown >= action_wait_time:
-                    #checar se o Dragão precisa se curar primeiro
-                    if (Dragao.hp/Dragao.max_hp) < 0.5 and Dragao.potions>0:
-                        if Dragao.max_hp - Dragao.hp > potion_effect:
-                            heal_amount = potion_effect
+                        #ataque
                         else:
-                            heal_amount = Dragao.max_hp - Dragao.hp
-                        Dragao.hp += heal_amount
-                        Dragao.potions -= 1
-                        damage_text = DamageText(Dragao.rect.centerx, Dragao.rect.centery, str(heal_amount), green)
-                        damage_textgroup.add(damage_text)
-                        current_fighter += 1
-                        action_cooldown = 0
-                    #ataque
-                    else:
-                        if (cont == 3):
-                            Dragao.attackM(Heroi)
-                            cont = 1
-                        else:
-                            Dragao.attack(Heroi)
-                            cont= cont+1
-                        current_fighter += 1
-                        action_cooldown = 0
+                            if (cont == 3):
+                                Dragao.attackM(Heroi)
+                                cont = 1
+                            else:
+                                Dragao.attack(Heroi)
+                                cont= cont+1
+                            current_fighter += 1
+                            action_cooldown = 0
 
-        #Se todos já tiverem seus turnos, reset
-        if current_fighter > total_fighters:
-            current_fighter = 1
+            #Se todos já tiverem seus turnos, reset
+            if current_fighter > total_fighters:
+                current_fighter = 1
 
-        #checar se o dragão ta vivo
-        if Dragao.alive == False:
-            game_over = 1
+            #checar se o dragão ta vivo
+            if Dragao.alive == False:
+                game_over = 1
 
-    #checar se o jogo acabou
-    if game_over != 0:
-        if game_over == 1:
-            screen.blit(victory_img,(250,50))
-        elif game_over == -1:
-            screen.blit(defeat_img,(250,50))
+        #checar se o jogo acabou
+        if game_over != 0:
+            if game_over == 1:
+                screen.blit(victory_img,(250,50))
+            elif game_over == -1:
+                screen.blit(defeat_img,(250,50))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+        #comandos do teclado:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    clicked = True
+                else:
+                    clicked = False
+                if event.key == pygame.K_a:
+                    effect = True
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-    #comandos do teclado:
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                clicked = True
-            else:
-                clicked = False
-            if event.key == pygame.K_a:
-                effect = True
-
-    pygame.display.update()
-pygame.quit()
+        pygame.display.update()
+    pygame.quit()
