@@ -1,34 +1,31 @@
+import os, sys
+
+dirpath = os.getcwd()
+sys.path.append(dirpath)
+
+if getattr(sys, "frozen", False):
+    os.chdir(sys._MEIPASS)
+###
 import pygame
 from pygame import mixer
-import os
 import random
 import csv
 import boss
 import menu
+from constants import *
+from models.GameObjects import GenericObject, Coletaveis, ColetaveisGroup
 
 mixer.init()
 pygame.init()
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Colorblind Quest")
 
 # frame rate
 clock = pygame.time.Clock()
-FPS = 60
-
-# variaveis do jogo
-GRAVIDADE = 0.70
-SCROOL_TRESH = 200
-ROWS = 16
-COLS = 150
-TILE_SIZE = SCREEN_HEIGHT // ROWS
-MAX_LEVEL = 2
 
 #muda em relação a quantidade de tipos de objetos de mundo
-TILE_TYPES = 20
 screen_scroll = 0
 bg_scroll = 0
 level = 1
@@ -44,59 +41,54 @@ bomba_jogou = False
 
 
 # carregar músicas
-pygame.mixer.music.load('audios/fase1.wav')
+pygame.mixer.music.load(PATH_MUSICA_FX)
 pygame.mixer.music.set_volume(0.5)
 pygame.mixer.music.play(-1, 0.0, 3000)
-jump_fx = pygame.mixer.Sound('audios/jump.wav')
-morte_fx = pygame.mixer.Sound('audios/morte.wav')
-moeda_fx = pygame.mixer.Sound('audios/moedaColetada.wav')
-coracao_fx = pygame.mixer.Sound('audios/coracao.wav')
-heroDano_fx = pygame.mixer.Sound('audios/heroTakingHit.wav')
-goblinDano_fx = pygame.mixer.Sound('audios/goblinTakingHit.wav')
-shot_fx = pygame.mixer.Sound('audios/heroThrowing.wav')
-shotmal_fx = pygame.mixer.Sound('audios/goblinThrowing.wav')
-grenade_fx = pygame.mixer.Sound('audios/grenade.wav')
-tacargrenade_fx = pygame.mixer.Sound('audios/tacarGrenade.wav')
+
+jump_fx = pygame.mixer.Sound(PATH_JUMP_FX)
+morte_fx = pygame.mixer.Sound(PATH_MORTE_FX)
+moeda_fx = pygame.mixer.Sound(PATH_MOEDA_FX)
+coracao_fx = pygame.mixer.Sound(PATH_CORACAO_FX)
+heroDano_fx = pygame.mixer.Sound(PATH_DANO_HEROI_FX)
+goblinDano_fx = pygame.mixer.Sound(PATH_DANO_GOBLIN_FX)
+shot_fx = pygame.mixer.Sound(PATH_ATAQUE_HEROI_FX)
+shotmal_fx = pygame.mixer.Sound(PATH_ATAQUE_GOBLIN_FX)
+grenade_fx = pygame.mixer.Sound(PATH_EXPLOSAO_FX)
+tacargrenade_fx = pygame.mixer.Sound(PATH_GRANADA_FX)
+
 
 # carregar imagens
-fundo1_img = pygame.image.load('Sprites/Background/1.png').convert_alpha()
-fundo2_img = pygame.image.load('Sprites/Background/0.png').convert_alpha()
-montanha_img = pygame.image.load('Sprites/Background/3.png').convert_alpha()
-ceu_img = pygame.image.load('Sprites/Background/2.png').convert_alpha()
+fundo2_img = pygame.image.load(PATH_BACKGROUND0).convert_alpha()
+fundo1_img = pygame.image.load(PATH_BACKGROUND1).convert_alpha()
+ceu_img = pygame.image.load(PATH_BACKGROUND2).convert_alpha()
+montanha_img = pygame.image.load(PATH_BACKGROUND3).convert_alpha()
+
 
 #guardar os tiles numa lista
 img_list = []
 for x in range(TILE_TYPES):
-    img = pygame.image.load(f'Sprites/tile/{x}.png')
+    img = pygame.image.load(f'sprites/tile/{x}.png')
     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     img_list.append(img)
 
 # ataque
-bullet_img = pygame.image.load('Sprites/Elementos/ataque/bola.png').convert_alpha()
-bullet_img2 = pygame.image.load('Sprites/Elementos/ataque/projetil.png').convert_alpha()
+bullet_img = pygame.image.load(PATH_ATAQUE_BOLA).convert_alpha()
+bullet_img2 = pygame.image.load(PATH_ATAQUE_PROJETIL).convert_alpha()
 
 # bomba
-bomba_img = pygame.image.load('Sprites/Elementos/ataque/bola.png').convert_alpha()
+bomba_img = pygame.image.load(PATH_ATAQUE_BOLA).convert_alpha()
+
 
 #coletavel
-coracao_img = pygame.image.load('Sprites/Elementos/coracao.png').convert_alpha()
-coracao_sem_vida_img = pygame.image.load('Sprites/Elementos/coracao_vazio.png').convert_alpha()
-moeda_img = pygame.image.load('Sprites/Elementos/Moeda.png').convert_alpha()
+coracao_img = pygame.image.load(PATH_CORACAO).convert_alpha()
+coracao_sem_vida_img = pygame.image.load(PATH_CORACAO_VAZIO).convert_alpha()
+moeda_img = pygame.image.load(PATH_MOEDA).convert_alpha()
+
 
 item_coletavel = {
     'coracao': coracao_img,
     'moeda': moeda_img
 }
-
-# definir cores
-BG = (201, 144, 120)
-RED = (255, 0, 0)
-WHITE = (255, 255, 255)
-GREEN = (0, 255, 0)
-BLACK = (0, 0, 0)
-
-#definir fonte
-fonte = pygame.font.SysFont('Futura', 30)
 
 def update_musica():
     if (menu.som == 0):
@@ -127,7 +119,7 @@ def reset_level():
     #empty.tile_list
     data = []
     for row in range (ROWS):
-        r=[-1]*COLS
+        r = [-1]*COLS
         data.append(r)
     return data
 
@@ -172,11 +164,11 @@ class Personagens(pygame.sprite.Sprite):
             # reset lista temporaria
             temporaria_list = []
             # contar quantas imagens tem na pasta
-            num_of_frames = len(os.listdir(f'Sprites/{self.char_tipo}/{animacao}'))
+            num_of_frames = len(os.listdir(f'sprites/{self.char_tipo}/{animacao}'))
 
             # Passando pelas fotos para forma uma animação
             for i in range(num_of_frames):
-                img = pygame.image.load(f'Sprites/{self.char_tipo}/{animacao}/{i}.png').convert_alpha()
+                img = pygame.image.load(f'sprites/{self.char_tipo}/{animacao}/{i}.png').convert_alpha()
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temporaria_list.append(img)
             # Adicionando uma lista em outra lista de animação
@@ -224,11 +216,8 @@ class Personagens(pygame.sprite.Sprite):
         self.vel_y += GRAVIDADE
         if self.vel_y > 10:
             self.vel_y = 10
+
         dy += self.vel_y
-
-        # checar colisão com chão
-        # 300 é o nível do chão
-
         comColisao = False
 
         for tile in mundo.lista_obstaculos:
@@ -238,7 +227,7 @@ class Personagens(pygame.sprite.Sprite):
                 dx = 0
 
                 #Se ele colidir, virar
-                if self.char_tipo == 'Goblin':
+                if self.char_tipo == 'goblin':
                     self.direction *= -1
                     self.move_count = 0
 
@@ -259,11 +248,11 @@ class Personagens(pygame.sprite.Sprite):
                     self.no_ar = False
 
         #checar a colisão com a água
-        if self.char_tipo == "Heroi":
+        if self.char_tipo == "heroi":
             if pygame.sprite.spritecollide(self, agua_group , False):
                 self.vida = 0
 
-        if self.char_tipo == 'Goblin':
+        if self.char_tipo == 'goblin':
             if pygame.sprite.spritecollide(self, agua_group, False):
                 self.direction *= -1
 
@@ -279,12 +268,12 @@ class Personagens(pygame.sprite.Sprite):
         if self.no_ar or not comColisao:
             self.rect.y += dy
 
-        if self.char_tipo == 'Heroi':
+        if self.char_tipo == 'heroi':
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
                 dx = 0
 
         # atualizando a tela de acordo com a posição do heroi
-        if self.char_tipo == 'Heroi':
+        if self.char_tipo == 'heroi':
             if ((self.rect.right > SCREEN_WIDTH - SCROOL_TRESH and bg_scroll < mundo.level_length * TILE_SIZE) - SCREEN_WIDTH)\
                     or (self.rect.left < SCROOL_TRESH and bg_scroll > abs(dx)):
                 self.rect.x -= dx
@@ -422,24 +411,24 @@ class Mundo():
                     #criar os obstaculos que matam o personagem
                     #9 a 10
                     elif tile >= 9 and tile <= 10:
-                        agua = Agua(img, x * TILE_SIZE, y * TILE_SIZE)
+                        agua = GenericObject(img, x * TILE_SIZE, y * TILE_SIZE)
                         agua_group.add(agua)
 
                     #criar a decoração do cenário
                     #11 a 14
                     elif (tile == 11) or (tile>=13 and tile <= 14):
-                        decoracao = Decoracao(img, x * TILE_SIZE, y * TILE_SIZE)
+                        decoracao = GenericObject(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoracao_group.add(decoracao)
 
                     #criar heroi
                     #15
                     elif tile == 15:
-                        heroi = Personagens('Heroi', x * TILE_SIZE + 380, y * TILE_SIZE, 0.4, 5, 20, 5)
+                        heroi = Personagens('heroi', x * TILE_SIZE + 380, y * TILE_SIZE, 0.4, 5, 20, 5)
 
                     #criar inimigos
                     #16
                     elif tile == 16:
-                        inimigo = Personagens('Goblin', x * TILE_SIZE, y * TILE_SIZE, 0.5, 3, 20, 2)
+                        inimigo = Personagens('goblin', x * TILE_SIZE, y * TILE_SIZE, 0.5, 3, 20, 2)
                         inimigo_group.add(inimigo)
 
                     #criar moedas
@@ -457,7 +446,7 @@ class Mundo():
                     #criar saida
                     #19
                     elif tile == 19:
-                        saida = Saida(img, x * TILE_SIZE, y * TILE_SIZE)
+                        saida = GenericObject(img, x * TILE_SIZE, y * TILE_SIZE)
                         saida_group.add(saida)
         return heroi
 
@@ -467,70 +456,6 @@ class Mundo():
             tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
 
-
-class Decoracao(pygame.sprite.Sprite):
-    def __init__(self, img, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = img
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def update(self):
-        self.rect.x += screen_scroll
-
-
-class Agua(pygame.sprite.Sprite):
-    def __init__(self, img, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = img
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def update(self):
-        self.rect.x += screen_scroll
-
-
-class Saida(pygame.sprite.Sprite):
-    def __init__(self, img, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = img
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-    def update(self):
-        self.rect.x += screen_scroll
-
-
-class Coletaveis(pygame.sprite.Sprite):
-    def __init__(self, item_tipo, x, y):
-        pygame.sprite.Sprite.__init__(self)
-        self.item_tipo = item_tipo
-        self.image = item_coletavel[self.item_tipo]
-        self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
-
-
-    def update(self):
-        #scroll
-        self.rect.x += screen_scroll
-        #checar se o jogador pegou a caixa
-        if pygame.sprite.collide_rect(self, heroi):
-            #checar qual tipo de colecionável
-            if self.item_tipo == 'coracao':
-                heroi.vida += 1
-                if menu.som == 1:
-                    coracao_fx.play()
-
-                if heroi.vida > heroi.max_vida:
-                    heroi.vida = heroi.max_vida
-
-
-            elif self.item_tipo == 'moeda':
-                heroi.pontos += 50
-            self.kill()
-
-            if menu.som == 1:
-                moeda_fx.play()
 
 
 class Bullet_mal(pygame.sprite.Sprite):
@@ -674,7 +599,7 @@ class Explosao(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.imagens = []
         for num in range(1, 6):
-            img = pygame.image.load(f'Sprites/Explosao/exp{num}.png')
+            img = pygame.image.load(f'sprites/explosao/exp{num}.png')
             img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
             self.imagens.append(img)
 
@@ -744,7 +669,7 @@ bullet_group = pygame.sprite.Group()
 bullet_group2 = pygame.sprite.Group()
 bomba_group = pygame.sprite.Group()
 explosao_group = pygame.sprite.Group()
-item_coletavel_group = pygame.sprite.Group()
+item_coletavel_group = ColetaveisGroup()
 decoracao_group = pygame.sprite.Group()
 agua_group = pygame.sprite.Group()
 saida_group = pygame.sprite.Group()
@@ -757,7 +682,7 @@ for row in range(ROWS):
     world_data.append(r)
 
 #carregar o level do mapa e criar o mundo
-with open(f'level{level}_data.csv', newline='') as csvfile:
+with open(f'models/level{level}_data.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for x, row in enumerate(reader):
         for y, tile in enumerate(row):
@@ -806,10 +731,12 @@ while run:
         bullet_group2.update()
         bomba_group.update()
         explosao_group.update()
-        item_coletavel_group.update()
-        decoracao_group.update()
-        agua_group.update()
-        saida_group.update()
+        temp_vida, temp_point = item_coletavel_group.update(screen_scroll, heroi, menu, coracao_fx, moeda_fx)
+        heroi.vida += temp_vida
+        heroi.pontos += temp_point
+        decoracao_group.update(screen_scroll)
+        agua_group.update(screen_scroll)
+        saida_group.update(screen_scroll)
 
         bullet_group.draw(screen)
         bullet_group2.draw(screen)
@@ -864,7 +791,7 @@ while run:
                 world_data = reset_level()
                 if level <= MAX_LEVEL:
                     # carregar o level do mapa e criar o mundo
-                    with open(f'level{level}_data.csv', newline='') as csvfile:
+                    with open(f'models/level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         for x, row in enumerate(reader):
                             for y, tile in enumerate(row):
@@ -873,13 +800,15 @@ while run:
                     heroi = mundo.process_data(world_data)
                     vida = 3
                 if level > 2:
-                    pygame.mixer.music.set_volume(0.0)
                     boss.boss()
+                    reset_level()
+                    level = 1
 
         else:
             if menu.som == 1:
                 morte_fx.play()
             screen_scroll = 0
+
             if morte_fade.fade():
                 morte_fade.count_fade = 0
                 start_intro = True
@@ -887,7 +816,7 @@ while run:
                 world_data = reset_level()
 
                 # carregar o level do mapa e criar o mundo
-                with open(f'level{level}_data.csv', newline='') as csvfile:
+                with open(f'models/level{level}_data.csv', newline='') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
                     for x, row in enumerate(reader):
                         for y, tile in enumerate(row):

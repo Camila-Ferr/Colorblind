@@ -2,13 +2,15 @@ import pygame
 from pygame import mixer
 import random
 import os
-
+from constants import *
 import menu
+from models.Text import DamageText
 
 pygame.init()
+pygame.mixer.init()
 
-clock=pygame.time.Clock()
-fps=60
+clock = pygame.time.Clock()
+fps = 60
 bottom_panel = 150
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
@@ -27,34 +29,35 @@ potion_effect = 50
 clicked = False
 effect = False
 game_over = 0
-cont=0
+cont = 0
 
-pygame.mixer.music.load('audios/boss.wav')
-pygame.mixer.music.play(-1, 0.0, 5000)
-ataque_fx = pygame.mixer.Sound('audios/ataque.wav')
-ataque2_fx=pygame.mixer.Sound('audios/ataque2.wav')
-ataque_heroi_fx=pygame.mixer.Sound('audios/espada.wav')
-pocao_fx=pygame.mixer.Sound('audios/jump.wav')
+pygame.mixer.music.load(PATH_MUSICA_FX)
+pygame.mixer.music.play(-1, 0.0, 2000)
+pygame.mixer.music.set_volume(0.5)
+ataque_fx = pygame.mixer.Sound(PATH_ATAQUE1_DRAGAO_FX)
+ataque2_fx = pygame.mixer.Sound(PATH_ATAQUE2_DRAGAO_FX)
+ataque_heroi_fx = pygame.mixer.Sound(PATH_ATAQUE_HBOSS_FX)
+pocao_fx = pygame.mixer.Sound(PATH_JUMP_FX)
 
 #definir fontes
-font = pygame.font.SysFont('Times New Roman',26)
+font = pygame.font.SysFont('Arial', 24, bold=False, italic=False)
 
 #definir cores
-red=(255,0,0)
-green=(0,255,0)
+red = (255, 0, 0)
+green = (0, 255, 0)
 
 # Carregar imagens
-background_image=pygame.image.load("Sprites/Background/Bgfinal.png").convert_alpha()
+background_image=pygame.image.load(PATH_BACKGROUND_FINAL).convert_alpha()
 
 #painel
-painel_image=pygame.image.load("Sprites/Cenаrio/painel.png").convert_alpha()
+painel_image=pygame.image.load(PATH_CENARIO_PAINEL).convert_alpha()
 
 #imagens de poções
-potion_img=pygame.image.load("Sprites/Elementos/moeda.png").convert_alpha()
+potion_img = pygame.image.load(PATH_MOEDA).convert_alpha()
 
 #Imagens de vitória e derrota
-victory_img=pygame.image.load("Sprites/Menu/win.png").convert_alpha()
-defeat_img=pygame.image.load("Sprites/Menu/lose.png").convert_alpha()
+victory_img=pygame.image.load(PATH_MENU_WIN).convert_alpha()
+defeat_img=pygame.image.load(PATH_MENU_LOSE).convert_alpha()
 
 #desenhar texto
 def draw_text(text, font,text_color,x,y):
@@ -70,7 +73,7 @@ def painel():
     screen.blit(painel_image,(-70,SCREEN_HEIGHT-bottom_panel))
     #mostrar status do dragão
     draw_text(f'{"O grande dragão"} HP:{Dragao.hp}',font,red,440,SCREEN_HEIGHT-bottom_panel+10)
-    #mostrar status do Heroi
+    #mostrar status do heroi
     draw_text(f'{"Herói"} HP:{Heroi.hp}', font, red, 100, SCREEN_HEIGHT - bottom_panel + 10)
 
 #Função para atualizar música
@@ -98,7 +101,7 @@ class Boss():
         #Carregar imagens parado
         temp_list=[]
         for i in range (6):
-            image = pygame.image.load(f'Sprites/{self.name}/luta/{i}.png')
+            image = pygame.image.load(f'sprites/{self.name}/luta/{i}.png')
             image = pygame.transform.scale(image, (image.get_width() * scale, image.get_height() * scale))
             temp_list.append(image)
         self.animations_list.append(temp_list)
@@ -106,7 +109,7 @@ class Boss():
         #Carregar imagens para ataque
         temp_list = []
         for i in range(3):
-            image = pygame.image.load(f'Sprites/{self.name}/ataque/{i}.png')
+            image = pygame.image.load(f'sprites/{self.name}/ataque/{i}.png')
             image = pygame.transform.scale(image, (image.get_width()*scale, image.get_height()*scale))
             temp_list.append(image)
         self.animations_list.append(temp_list)
@@ -114,7 +117,7 @@ class Boss():
         # Carregar imagens para ferida
         temp_list = []
         for i in range(5):
-            image = pygame.image.load(f'Sprites/{self.name}/ferido/{i}.png')
+            image = pygame.image.load(f'sprites/{self.name}/ferido/{i}.png')
             image = pygame.transform.scale(image, (image.get_width()*scale, image.get_height()*scale))
             temp_list.append(image)
         self.animations_list.append(temp_list)
@@ -122,7 +125,7 @@ class Boss():
         # Carregar imagens para morto
         temp_list = []
         for i in range(5):
-            image = pygame.image.load(f'Sprites/{self.name}/morto/{i}.png')
+            image = pygame.image.load(f'sprites/{self.name}/morto/{i}.png')
             image = pygame.transform.scale(image, (image.get_width() * scale, image.get_height() * scale))
             temp_list.append(image)
         self.animations_list.append(temp_list)
@@ -130,7 +133,7 @@ class Boss():
         # Carregar imagens para o segundo ataque do dragão
         temp_list = []
         for i in range(9):
-            image = pygame.image.load(f'Sprites/Dragao/master/{i}.png')
+            image = pygame.image.load(f'sprites/dragao/master/{i}.png')
             image = pygame.transform.scale(image, (image.get_width() * scale, image.get_height() * scale))
             temp_list.append(image)
         self.animations_list.append(temp_list)
@@ -167,10 +170,10 @@ class Boss():
 
     def attack (self, target):
         #dano ao inimigo
-        if self.name=="Heroi":
+        if self.name=="heroi":
             rand=20*(4-self.potions)
 
-        if self.name== "Dragao":
+        if self.name== "dragao":
             rand= 30
 
         damage = self.strength + rand
@@ -184,7 +187,7 @@ class Boss():
             target.alive = False
             target.death()
 
-        damage_text = DamageText(target.rect.centerx,target.rect.centery,str(damage),red)
+        damage_text = DamageText(target.rect.centerx,target.rect.centery,str(damage),red, font)
         damage_textgroup.add(damage_text)
 
         #mudar variáveis de ataque
@@ -192,17 +195,17 @@ class Boss():
         self.frame_index = 0
         self.update_time = pygame.time.get_ticks()
 
-        if self.name == "Dragao":
+        if self.name == "dragao":
             if menu.som == 1:
                 ataque_fx.play()
 
-        if self.name == "Heroi":
+        if self.name == "heroi":
             if menu.som == 1:
                 ataque_heroi_fx.play()
 
     def attackM (self, target):
 
-        if self.name == "Dragao":
+        if self.name == "dragao":
             rand = 60
             cont = 0
             damage = self.strength + rand
@@ -216,7 +219,7 @@ class Boss():
                 target.alive = False
                 target.death()
 
-            damage_text = DamageText(target.rect.centerx, target.rect.centery, str(damage), red)
+            damage_text = DamageText(target.rect.centerx, target.rect.centery, str(damage), red, font)
             damage_textgroup.add(damage_text)
 
             # mudar variáveis de ataque
@@ -256,28 +259,10 @@ class HealthBar():
         pygame.draw.rect(screen,red,(self.x,self.y,150,20))
         pygame.draw.rect(screen, green, (self.x, self.y, 150*ratio, 20))
 
-
-class DamageText(pygame.sprite.Sprite):
-    def __init__(self,x,y,damage,colour):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = font.render(damage,True,colour)
-        self.rect = self.image.get_rect()
-        self.rect.center = (x,y)
-        self.counter = 0
-
-    def update(self):
-        #move o texto do dano
-        self.rect.y -= 1
-        #apaga o texto depois de alguns segundos
-        self.counter += 1
-        if self.counter > 30:
-            self.kill()
-
-
 damage_textgroup = pygame.sprite.Group()
 
-Dragao = Boss(780,300,"Dragao",300,10,1,5)
-Heroi=Boss(200,370, "Heroi",300,6,3,1)
+Dragao = Boss(780,300,"dragao",300,10,1,5)
+Heroi=Boss(200,370, "heroi",300,6,3,1)
 
 Heroi_health_bar=HealthBar(100, SCREEN_HEIGHT-bottom_panel+40, Heroi.hp,Heroi.max_hp)
 Dragao_health_bar=HealthBar(550, SCREEN_HEIGHT-bottom_panel+40, Dragao.hp,Dragao.max_hp)
@@ -347,14 +332,14 @@ def boss():
                                         heal_amount = Heroi.max_hp - Heroi.hp
                                     Heroi.hp += heal_amount
                                     Heroi.potions -= 1
-                                    damage_text = DamageText(Heroi.rect.centerx, Heroi.rect.centery, str(heal_amount), green)
+                                    damage_text = DamageText(Heroi.rect.centerx, Heroi.rect.centery, str(heal_amount), green, font)
                                     damage_textgroup.add(damage_text)
                                     current_fighter += 1
                                     action_cooldown = 0
                                     effect = False
+
                 else:
                     game_over = -1
-
                 #ações do Boss:
                 if current_fighter == 2:
                     if Dragao.alive == True:
@@ -368,7 +353,7 @@ def boss():
                                     heal_amount = Dragao.max_hp - Dragao.hp
                                 Dragao.hp += heal_amount
                                 Dragao.potions -= 1
-                                damage_text = DamageText(Dragao.rect.centerx, Dragao.rect.centery, str(heal_amount), green)
+                                damage_text = DamageText(Dragao.rect.centerx, Dragao.rect.centery, str(heal_amount), green, font)
                                 damage_textgroup.add(damage_text)
                                 current_fighter += 1
                                 action_cooldown = 0
